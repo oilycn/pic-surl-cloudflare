@@ -65,7 +65,7 @@ async function handleRootRequest(request, USERNAME, PASSWORD, enableAuth, domain
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>多功能云服务平台</title>
+    <title>JUMK聚合云服务平台</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         * {
@@ -100,6 +100,12 @@ async function handleRootRequest(request, USERNAME, PASSWORD, enableAuth, domain
       margin-bottom: 8px;
       font-weight: 700;
       color: #0f172a;
+    }
+
+    .header h1 img {
+      max-width: 500px; /* **这里缩小了图片的最大宽度** */
+      height: auto; /* 保持图片比例 */
+      border-radius: 8px;
     }
 
     .header p {
@@ -374,7 +380,11 @@ async function handleRootRequest(request, USERNAME, PASSWORD, enableAuth, domain
 <body>
     <div class="container">
         <div class="header">
-            <h1><i class="fas fa-cloud"></i> 多功能云服务平台</h1>
+            <h1>
+            <a href="/"> <!-- 如果图片是logo，通常会链接到首页 -->
+                <img src="https://ju.mk/1758200160455.png" alt="JUMK 聚合云服务平台 Logo">
+            </a>
+            </h1>
             <p>图片托管 & 短链接生成 - 一站式解决方案</p>
         </div>
         
@@ -1267,34 +1277,37 @@ async function generateImagesListPage(DATABASE, page = 1) {
       }
       
       .container {
-        max-width: 1400px;
+        max-width: 1200px;
         margin: 0 auto;
       }
       
       .header {
-        background: #ffffff;
-        border-radius: 12px;
-        padding: 20px 22px;
-        margin-bottom: 20px;
-        box-shadow: 0 8px 24px rgba(15,23,42,0.06);
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 30px;
+        margin-bottom: 30px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
         display: flex;
         justify-content: space-between;
         align-items: center;
         flex-wrap: wrap;
-        gap: 12px;
-        border: 1px solid rgba(15,23,42,0.04);
+        gap: 20px;
       }
       
       .header-left h1 {
-        color: #0f172a;
-        font-size: 1.9rem;
-        margin-bottom: 6px;
-        font-weight: 700;
+        color: #333;
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
       }
-
+      
       .header-left p {
-        color: #475569;
-        font-size: 0.98rem;
+        color: #666;
+        font-size: 1.1rem;
       }
       
       .header-right {
@@ -1304,15 +1317,15 @@ async function generateImagesListPage(DATABASE, page = 1) {
       }
       
       .btn {
-        background: linear-gradient(90deg, #2563eb, #7c3aed);
+        background: linear-gradient(45deg, #667eea, #764ba2);
         color: white;
         border: none;
-        padding: 10px 18px;
-        border-radius: 10px;
-        font-size: 0.95rem;
+        padding: 12px 24px;
+        border-radius: 25px;
+        font-size: 1rem;
         cursor: pointer;
-        transition: transform 0.16s ease, box-shadow 0.16s ease;
-        box-shadow: 0 8px 20px rgba(37,99,235,0.08);
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
         text-decoration: none;
         display: inline-flex;
         align-items: center;
@@ -2246,15 +2259,16 @@ async function generateUrlsListPage(DATABASE, page = 1, currentDomain = '') {
       }
       
       .stats-bar {
-        background: rgba(255, 255, 255, 0.9);
-        backdrop-filter: blur(10px);
-        border-radius: 15px;
-        padding: 20px;
-        margin-bottom: 30px;
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 14px;
+        margin-bottom: 20px;
         display: flex;
         justify-content: center;
-        gap: 40px;
+        gap: 20px;
         flex-wrap: wrap;
+        border: 1px solid rgba(15,23,42,0.04);
+        box-shadow: 0 8px 20px rgba(15,23,42,0.04);
       }
       
       .stat-item {
@@ -2281,20 +2295,20 @@ async function generateUrlsListPage(DATABASE, page = 1, currentDomain = '') {
       }
       
       .url-card {
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(10px);
+        background: #ffffff;
         border-radius: 12px;
         padding: 20px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        transition: all 0.3s ease;
+        box-shadow: 0 8px 22px rgba(15,23,42,0.04);
+        transition: transform 0.18s ease, box-shadow 0.18s ease;
         display: flex;
         justify-content: space-between;
         align-items: center;
         gap: 20px;
+        border: 1px solid rgba(15,23,42,0.04);
       }
       
       .url-card:hover {
-        transform: translateY(-2px);
+        transform: translateY(-3px);
         box-shadow: 0 8px 25px rgba(0,0,0,0.15);
       }
       
@@ -2362,23 +2376,23 @@ async function generateUrlsListPage(DATABASE, page = 1, currentDomain = '') {
       }
       
       .action-btn {
-        background: #f8f9fa;
-        border: 1px solid #e9ecef;
-        color: #495057;
-        padding: 8px;
+        background: #ffffff;
+        border: 1px solid rgba(15,23,42,0.06);
+        color: #0f172a;
+        padding: 6px;
         border-radius: 8px;
         cursor: pointer;
-        transition: all 0.3s ease;
-        font-size: 0.9rem;
-        width: 36px;
-        height: 36px;
+        transition: transform 0.14s ease, box-shadow 0.14s ease;
+        font-size: 0.88rem;
+        width: 32px;
+        height: 32px;
         display: flex;
         align-items: center;
         justify-content: center;
       }
       
       .action-btn:hover {
-        transform: translateY(-1px);
+        transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
       }
       
@@ -2425,14 +2439,14 @@ async function generateUrlsListPage(DATABASE, page = 1, currentDomain = '') {
         position: fixed;
         top: 20px;
         right: 20px;
-        background: #28a745;
+        background: #10b981;
         color: white;
-        padding: 15px 20px;
+        padding: 12px 18px;
         border-radius: 10px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        box-shadow: 0 8px 24px rgba(15,23,42,0.08);
         z-index: 1000;
         transform: translateX(400px);
-        transition: transform 0.3s ease;
+        transition: transform 0.22s ease;
       }
       
       .toast.show {
