@@ -1,6 +1,8 @@
 # pic-surl-cloudflare
 cloudflare 图床及短链接一站式 基于 workers，d1，r2
 
+展示包括数据统计，列表查看，储存使用量等。
+
 ### 预览如下
 ![预览](https://ju.mk/1758186983904.png)
 
@@ -51,3 +53,12 @@ CREATE TABLE media ( url TEXT PRIMARY KEY )
 ``` sql
 CREATE TABLE short_urls ( id INTEGER PRIMARY KEY AUTOINCREMENT,   short_id TEXT UNIQUE NOT NULL,   url TEXT NOT NULL,   created_at TEXT NOT NULL,   clicks INTEGER DEFAULT 0 )
 ```
+
+### 进入已上传的图片和短链接列表
+![预览](https://ju.mk/1758203674942.png)
+* 图床
+![预览](https://ju.mk/1758203790133.png)
+* 短链接
+![预览](https://ju.mk/1758203887562.png)
+
+> **变量及绑定都完成以后，就可以直接粘贴代码到worker里面部署了，绑定自定义域名**
