@@ -163,6 +163,7 @@ function getLoginPageHtml(hasError) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="https://raw.githubusercontent.com/oilycn/MyPic/refs/heads/main/Hexo/202108311249274.ico">
     <title>登录</title>
     <style>
         body {
@@ -269,6 +270,7 @@ async function handleRootRequest(request) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="https://raw.githubusercontent.com/oilycn/MyPic/refs/heads/main/Hexo/202108311249274.ico">
     <title>JUMK聚合云服务平台</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -1480,6 +1482,7 @@ async function generateImagesListPage(DATABASE, page = 1) {
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="https://raw.githubusercontent.com/oilycn/MyPic/refs/heads/main/Hexo/202108311249274.ico">
     <title>图片列表 - 多功能云服务平台</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -2395,6 +2398,7 @@ async function generateUrlsListPage(DATABASE, page = 1, currentDomain = '') {
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="https://raw.githubusercontent.com/oilycn/MyPic/refs/heads/main/Hexo/202108311249274.ico">
     <title>短链列表 - 多功能云服务平台</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
