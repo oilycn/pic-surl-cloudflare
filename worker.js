@@ -2715,45 +2715,6 @@ async function generateUrlsListPage(DATABASE, page = 1, currentDomain = '') {
   });
 }
 
-// 列出 R2 并计算已用字节数
-async function listR2Usage(env) {
-  const DEFAULT_LIMIT_BYTES = (() => {
-    const v = Number(env.R2_FREE_LIMIT_BYTES || env.R2_FREE_LIMIT || 0);
-    if (v && !Number.isNaN(v) && v > 0) return v;
-    return 10 * 1024 * 1024 * 1024; // 默认 10GB
-  })();
-
-  if (!env || !env.R2_BUCKET) {
-    return { usedBytes: 0, limitBytes: DEFAULT_LIMIT_BYTES, percent: 0, hasBucket: false };
-  }
-
-  let used = 0;
-  try {
-    let cursor = undefined;
-    while (true) {
-      const opts = {};
-      if (cursor) opts.cursor = cursor;
-      const res = await env.R2_BUCKET.list(opts);
-      const objects = Array.isArray(res.objects) ? res.objects : (Array.isArray(res) ? res : (res.results || []));
-      for (const obj of objects) {
-        if (obj && typeof obj.size === 'number') used += obj.size;
-      }
-      // 分页处理，一些实现返回 truncated/cursor
-      if (res.truncated || res.isTruncated) {
-        cursor = res.cursor || res.next || null;
-        if (!cursor) break;
-      } else {
-        break;
-      }
-    }
-  } catch (e) {
-    console.error('listR2Usage error', e);
-    throw e;
-  }
-
-  const percent = Math.min(100, (used / DEFAULT_LIMIT_BYTES) * 100);
-  return { usedBytes: used, limitBytes: DEFAULT_LIMIT_BYTES, percent, hasBucket: true };
-}
 
 // Modify handleR2UsageRequest to use getR2UsageFromMetricsAPI
 async function handleR2UsageRequest(env) {
@@ -2779,10 +2740,6 @@ async function getR2UsageFromMetricsAPI(env) {
   })();
   if (!env || !env.CLOUDFLARE_ACCOUNT_ID || !env.CLOUDFLARE_EMAIL || !env.CLOUDFLARE_API_KEY) {
       console.warn('R2 Metrics API: Missing CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_EMAIL, or CLOUDFLARE_API_KEY environment variables. Falling back to listing objects if R2_BUCKET is bound.');
-      // 如果 API 凭据缺失，尝试使用 R2_BUCKET.list() 方式
-      if (env.R2_BUCKET) {
-          return await listR2Usage(env); // <-- 回退
-      }
       return { usedBytes: 0, limitBytes: DEFAULT_LIMIT_BYTES, percent: 0, hasBucket: false };
   }
   try {
@@ -2801,11 +2758,6 @@ async function getR2UsageFromMetricsAPI(env) {
       if (!response.ok) {
           const errorText = await response.text();
           console.error(`Cloudflare R2 Metrics API error: ${response.status} ${response.statusText} - ${errorText}`);
-          // 如果 API 调用失败，回退到 listR2Usage
-          if (env.R2_BUCKET) {
-              console.warn('Falling back to listing R2 objects due to metrics API failure.');
-              return await listR2Usage(env); // <-- 回退
-          }
           // 如果没有 R2_BUCKET 绑定或回退也失败，则抛出错误
           throw new Error(`Failed to fetch R2 metrics: ${response.statusText} - Details: ${errorText}`);
       }
@@ -2823,11 +2775,6 @@ async function getR2UsageFromMetricsAPI(env) {
       return { usedBytes: used, limitBytes: DEFAULT_LIMIT_BYTES, percent, hasBucket: hasBucketData };
   } catch (e) {
       console.error('getR2UsageFromMetricsAPI caught an error:', e);
-      // 如果处理过程中出现异常，回退到 listR2Usage
-      if (env.R2_BUCKET) {
-          console.warn('Falling back to listing R2 objects due to error in metrics API call handler.');
-          return await listR2Usage(env);; // <-- 回退
-      }
       throw e;
   }
 }
