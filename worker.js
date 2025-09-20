@@ -335,15 +335,20 @@ async function handleRootRequest(request) {
     }
 
     .header h1 img {
-      max-width: 500px; /* **这里缩小了图片的最大宽度** */
-      height: auto; /* 保持图片比例 */
+      width: 100%; /* 新增：让图片宽度自适应容器 */
+      max-width: 500px; /* 保留：限制图片在宽屏下的最大尺寸 */
+      height: auto;
       border-radius: 8px;
     }
+
 
     .header p {
       font-size: 1.05rem;
       color: #475569;
+      word-wrap: break-word; /* 新增：允许长单词或连续字符换行 */
+      padding: 0 10px; /* 可选：增加左右内边距，防止文字紧贴屏幕边缘 */
     }
+
         
         .services {
             display: grid;
