@@ -29,11 +29,12 @@ export default {
     };
     switch (pathname) {
       case '/':
-        return requireAuth(handleRootRequest);
+        // return requireAuth(handleRootRequest);
+        return handleRootRequest(request, env);
       case '/upload':
         // 上传请求比较特殊，不能直接重定向，返回 JSON 错误
         if (enableAuth && !(await isAuthenticated(request, env))) {
-          return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
+          return new Response(JSON.stringify({ error: '请先通过密码验证！' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
         }
         return handleUploadRequest(request, DATABASE, domain, R2_BUCKET, maxSize, env);
       case '/r2-usage':
@@ -41,13 +42,13 @@ export default {
       case '/delete-images':
         // 删除请求也返回 JSON 错误
         if (enableAuth && !(await isAuthenticated(request, env))) {
-          return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
+          return new Response(JSON.stringify({ error: '请先通过密码验证！' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
         }
         return handleDeleteImagesRequest(request, DATABASE, R2_BUCKET);
       case '/shorten':
          // 缩短链接请求也返回 JSON 错误
         if (enableAuth && !(await isAuthenticated(request, env))) {
-          return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
+          return new Response(JSON.stringify({ error: '请先通过密码验证！' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
         }
         return handleShortenRequest(request, DATABASE, domain);
       case '/stats':
@@ -284,13 +285,37 @@ function getLoginPageHtml(hasError) {
   `;
 }
 
-async function handleRootRequest(request) {
+async function handleRootRequest(request, env) { // 接受 env 参数
   const cache = caches.default;
   const cacheKey = new Request(request.url);
-  const cachedResponse = await cache.match(cacheKey);
-  if (cachedResponse) {
-      return cachedResponse;
+
+  // 注意：对于动态内容，我们不能再简单地从缓存返回
+  // 否则即使用户登录/注销了，页面也不会变。
+  // 我们只在认证功能关闭时使用缓存。
+  const enableAuth = env.ENABLE_AUTH === 'true';
+
+  if (!enableAuth) {
+    const cachedResponse = await cache.match(cacheKey);
+    if (cachedResponse) {
+        return cachedResponse;
+    }
   }
+  
+  // 1. 检查认证状态
+  let authButtonHtml = '';
+  if (enableAuth) {
+    const authenticated = await isAuthenticated(request, env);
+    if (authenticated) {
+      // 如果已认证，显示“注销”按钮
+      authButtonHtml = `<a href="/logout" class="btn" style="text-decoration: none; background: transparent; color: #475569; border: 2px solid #cbd5e1; box-shadow: none; font-weight: 600;">注销</a>`;
+    } else {
+      // 如果未认证，显示“验证”按钮，链接到登录页
+      authButtonHtml = `<a href="/login" class="btn" style="text-decoration: none; background: transparent; color: #475569; border: 2px solid #cbd5e1; box-shadow: none; font-weight: 600;">验证</a>`;
+    }
+  }
+  // 如果认证功能关闭，authButtonHtml 将为空字符串，不显示任何按钮。
+
+  // 2. 将动态生成的按钮HTML注入到页面模板中
   const response = new Response(`
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -300,6 +325,7 @@ async function handleRootRequest(request) {
     <title>JUMK聚合云服务平台</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
+        /* ... 你的所有CSS样式代码保持不变，这里省略 ... */
         * {
             margin: 0;
             padding: 0;
@@ -778,11 +804,10 @@ async function handleRootRequest(request) {
         fill: #fff; /* 或者你想要的 Octocat 颜色 */
         transform: translate(120px, 20px);
     }
-
     </style>
 </head>
 <body>
-    <!-- GitHub 链接和图标 -->
+    <!-- ... 你的HTML body开头部分，这里省略 ... -->
     <a href="https://github.com/oilycn/pic-surl-cloudflare" class="github-corner" aria-label="View source on GitHub">
       <svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true">
         <path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path>
@@ -793,15 +818,16 @@ async function handleRootRequest(request) {
     <div class="container">
         <div class="header">
             <h1>
-            <a href="/"> <!-- 如果图片是logo，通常会链接到首页 -->
+            <a href="/">
                 <img src="https://ju.mk/1758200160455.png" alt="JUMK 聚合云服务平台 Logo">
             </a>
             </h1>
             <p>图片托管 & 短链接生成 - 一站式解决方案 
-            <a href="/logout" class="btn" style="text-decoration: none; background: transparent; color: #475569; border: 2px solid #cbd5e1; box-shadow: none; font-weight: 600;">注销</a>
+            ${authButtonHtml} 
             </p>
         </div>
         
+        <!-- ... 你的HTML body剩余部分，包括script标签，这里省略 ... -->
         <div class="services">
             <!-- 图片上传服务 -->
             <div class="service-card">
@@ -885,8 +911,7 @@ async function handleRootRequest(request) {
         </div>
       </div>
     </div>
-
-    <script>
+        <script>
         const uploadArea = document.getElementById('uploadArea');
         const fileInput = document.getElementById('fileInput');
         const uploadResult = document.getElementById('uploadResult');
@@ -1089,9 +1114,14 @@ async function handleRootRequest(request) {
                     const compressedText = result.compressed ? ' <span style="color: #28a745; font-size: 0.9em;">(已压缩)</span>' : '';
                     html += \`
                         <div style="margin-bottom: 15px;">
-                            <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                                <i class="fas fa-check-circle" style="color: #28a745; margin-right: 8px;"></i>
-                                <strong>\${result.filename}</strong> - 上传成功！\${compressedText}
+                            <div style="display: flex; align-items: flex-start; margin-bottom: 8px;">
+                                <i class="fas fa-check-circle" style="color: #28a745; margin-right: 8px; margin-top: 3px;"></i>
+                                <div style="flex: 1;">
+                                    <strong style="word-break: break-all;">\${result.filename}</strong>
+                                    <div style="font-size: 0.85em; color: #666; margin-top: 4px;">
+                                        上传成功！\${compressedText}
+                                    </div>
+                                </div>
                             </div>
                             <div class="url-display">
                                 <span>\${result.url}</span>
@@ -1274,11 +1304,17 @@ async function handleRootRequest(request) {
         });
     </script>    
 </body>
-</html>  
+</html>
 `, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
-  await cache.put(cacheKey, response.clone());
+
+  // 只有在认证功能关闭时，我们才缓存这个静态页面
+  if (!enableAuth) {
+    await cache.put(cacheKey, response.clone());
+  }
+  
   return response;
 }
+
 
 async function handleUploadRequest(request, DATABASE, domain, R2_BUCKET, maxSize, env) {
   try {
