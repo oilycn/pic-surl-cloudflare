@@ -163,7 +163,6 @@ function getLoginPageHtml(hasError) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="https://raw.githubusercontent.com/oilycn/MyPic/refs/heads/main/Hexo/202108311249274.ico">
     <title>登录</title>
     <style>
         body {
@@ -184,6 +183,34 @@ function getLoginPageHtml(hasError) {
             width: 100%;
             max-width: 380px;
             text-align: center;
+            margin: 0 20px;
+        }
+        
+        @media (max-width: 480px) {
+            .login-card {
+                padding: 24px;
+                margin: 0 16px;
+                border-radius: 12px;
+            }
+            
+            .login-card h1 {
+                font-size: 1.6rem;
+            }
+            
+            .login-card p {
+                font-size: 0.9rem;
+                margin-bottom: 24px;
+            }
+            
+            .input-field {
+                padding: 12px;
+                font-size: 0.9rem;
+            }
+            
+            .btn {
+                padding: 12px;
+                font-size: 0.9rem;
+            }
         }
         .login-card h1 {
             font-size: 2rem;
@@ -270,7 +297,6 @@ async function handleRootRequest(request) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="https://raw.githubusercontent.com/oilycn/MyPic/refs/heads/main/Hexo/202108311249274.ico">
     <title>JUMK聚合云服务平台</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -321,8 +347,8 @@ async function handleRootRequest(request) {
         
         .services {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
-            gap: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
             margin-bottom: 40px;
         }
         
@@ -564,21 +590,152 @@ async function handleRootRequest(request) {
         }
         
         @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
             .services {
                 grid-template-columns: 1fr;
+                gap: 15px;
             }
             
             .header h1 {
-                font-size: 2rem;
+                font-size: 1.8rem;
+            }
+            
+            .header h1 img {
+                max-width: 280px;
+            }
+            
+            .header p {
+                font-size: 0.95rem;
+                margin-bottom: 20px;
             }
             
             .service-card {
-                padding: 20px;
+                padding: 16px;
+                margin-bottom: 10px;
+            }
+            
+            .service-title {
+                font-size: 1.4rem;
+            }
+            
+            .service-header {
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            
+            .upload-area {
+                padding: 25px 15px;
+            }
+            
+            .upload-text {
+                font-size: 0.95rem;
+            }
+            
+            .input-group {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .btn {
+                padding: 12px 18px;
+                font-size: 0.9rem;
             }
             
             .url-display {
                 flex-direction: column;
                 align-items: stretch;
+                gap: 8px;
+                padding: 12px;
+            }
+            
+            .copy-btn {
+                width: 100%;
+                padding: 10px;
+            }
+            
+            .github-corner {
+                width: 60px;
+                height: 60px;
+            }
+            
+            .github-corner svg {
+                width: 60px;
+                height: 60px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding: 8px;
+            }
+            
+            .container {
+                padding: 0;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .header h1 img {
+                max-width: 240px;
+            }
+            
+            .service-card {
+                padding: 12px;
+            }
+            
+            .service-title {
+                font-size: 1.2rem;
+            }
+            
+            .upload-area {
+                padding: 20px 10px;
+            }
+            
+            .upload-icon {
+                font-size: 2.5rem;
+            }
+            
+            .upload-text {
+                font-size: 0.9rem;
+                margin-bottom: 15px;
+            }
+            
+            .btn {
+                padding: 10px 15px;
+                font-size: 0.85rem;
+            }
+            
+            .input-field {
+                padding: 10px 12px;
+                font-size: 0.9rem;
+            }
+            
+            .stat-card {
+                padding: 8px;
+                min-height: 50px;
+            }
+            
+            .stat-number {
+                font-size: 1.5rem;
+            }
+            
+            .stat-label {
+                font-size: 0.8rem;
+            }
+            
+            .github-corner {
+                width: 50px;
+                height: 50px;
+            }
+            
+            .github-corner svg {
+                width: 50px;
+                height: 50px;
             }
         }
 
@@ -770,6 +927,27 @@ async function handleRootRequest(request) {
                 }
             }
         });
+
+        // 移动端优化：防止双击缩放
+        document.addEventListener('touchstart', function(e) {
+            if (e.touches.length > 1) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function(e) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                e.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+
+        // 移动端优化：改善滚动性能
+        if ('ontouchstart' in window) {
+            document.body.style.webkitOverflowScrolling = 'touch';
+        }
 
         // 压缩切换函数 - 添加到全局作用域
         window.toggleCompression = function() {
@@ -1482,7 +1660,6 @@ async function generateImagesListPage(DATABASE, page = 1) {
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="https://raw.githubusercontent.com/oilycn/MyPic/refs/heads/main/Hexo/202108311249274.ico">
     <title>图片列表 - 多功能云服务平台</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -1888,62 +2065,320 @@ async function generateImagesListPage(DATABASE, page = 1) {
       }
       
       @media (max-width: 768px) {
-        .header-left, .header-right {
-          flex: 1 1 100%;
-          justify-content: flex-start;
+        body {
+          padding: 15px;
         }
-        .header-right {
-          margin-top: 10px;
+        
+        .header {
+          padding: 18px;
         }
-        .gallery {
+        
+        .header-top {
+          flex-direction: column;
+          gap: 15px;
+          align-items: stretch;
+        }
+        
+        .title-section {
+          text-align: center;
+          order: 1;
+        }
+        
+        .title-section h1 {
+          font-size: 1.8rem;
+          justify-content: center;
+        }
+        
+        .stats-inline {
+          order: 2;
+          justify-content: center;
+          gap: 6px;
+        }
+        
+        .stat-badge {
+          font-size: 0.75rem;
+          padding: 3px 8px;
+        }
+        
+        .action-buttons {
+          order: 3;
+          justify-content: center;
+          gap: 8px;
+        }
+        
+        .btn-small {
+          padding: 6px 12px;
+          font-size: 0.8rem;
+          min-width: 80px;
+        }
+        
+        .images-grid {
           grid-template-columns: repeat(2, 1fr);
+          gap: 12px;
+        }
+        
+        .stats-inline {
+          gap: 6px;
+        }
+        
+        .stat-badge {
+          font-size: 0.75rem;
+          padding: 3px 8px;
+        }
+        
+        .image-card {
+          border-radius: 10px;
+        }
+        
+        .image-container {
+          height: 120px;
+        }
+        
+        .image-info {
+          padding: 10px 12px;
+        }
+        
+        .upload-time {
+          font-size: 0.7rem;
+        }
+        
+        .action-btn {
+          width: 28px;
+          height: 28px;
+          font-size: 0.8rem;
         }
         
         .modal-content {
           max-width: 95%;
           max-height: 95%;
         }
+        
+        .close {
+          top: 10px;
+          right: 15px;
+          font-size: 30px;
+        }
+        
+        .stats-bar {
+          padding: 12px;
+          gap: 15px;
+        }
+        
+        .stat-number {
+          font-size: 1.5rem;
+        }
+        
+        .stat-label {
+          font-size: 0.8rem;
+        }
+      }
+      
+      @media (max-width: 480px) {
+        body {
+          padding: 10px;
+        }
+        
+        .header {
+          padding: 16px;
+          margin-bottom: 20px;
+        }
+        
+        .header-top {
+          gap: 12px;
+        }
+        
+        .title-section h1 {
+          font-size: 1.5rem;
+        }
+        
+        .stats-inline {
+          gap: 4px;
+          flex-wrap: wrap;
+        }
+        
+        .stat-badge {
+          font-size: 0.7rem;
+          padding: 2px 6px;
+          flex: 1;
+          min-width: 75px;
+          text-align: center;
+        }
+        
+        .action-buttons {
+          gap: 6px;
+        }
+        
+        .btn-small {
+          padding: 5px 10px;
+          font-size: 0.75rem;
+          flex: 1;
+          min-width: 70px;
+          justify-content: center;
+        }
+        
+        .images-grid {
+          grid-template-columns: repeat(2, 1fr);
+          gap: 8px;
+        }
+        
+        .image-container {
+          height: 180px;
+        }
+        
+        .image-info {
+          padding: 8px 10px;
+        }
+        
+        .upload-time {
+          font-size: 0.65rem;
+          margin-bottom: 8px;
+        }
+        
+        .image-actions {
+          gap: 4px;
+        }
+        
+        .action-btn {
+          width: 26px;
+          height: 26px;
+          font-size: 0.75rem;
+        }
+        
+        .stats-bar {
+          padding: 10px;
+          gap: 10px;
+          flex-direction: column;
+        }
+        
+        .stat-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          width: 100%;
+          padding: 8px 0;
+        }
+        
+        .stat-number {
+          font-size: 1.3rem;
+        }
+        
+        .stat-label {
+          font-size: 0.75rem;
+        }
+        
+        .close {
+          top: 5px;
+          right: 10px;
+          font-size: 25px;
+        }
+        
+        .toast {
+          top: 10px;
+          right: 10px;
+          left: 10px;
+          transform: translateY(-100px);
+          padding: 10px 15px;
+          font-size: 0.9rem;
+        }
+        
+        .toast.show {
+          transform: translateY(0);
+        }
+      }
+      
+      .btn-small {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+        box-shadow: 0 3px 12px rgba(102, 126, 234, 0.3);
+      }
+      
+      .btn-small:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 16px rgba(102, 126, 234, 0.4);
+      }
+      
+      .btn-small.btn-secondary {
+        background: linear-gradient(45deg, #28a745, #20c997);
+        color: white;
+        box-shadow: 0 3px 12px rgba(40, 167, 69, 0.3);
+      }
+      
+      .btn-small.btn-secondary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 16px rgba(40, 167, 69, 0.4);
+      }
+      
+      .header-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+        width: 100%;
+      }
+      
+      .title-section {
+        flex-shrink: 0;
+      }
+      
+      .title-section h1 {
+        color: #333;
+        font-size: 2.2rem;
+        margin: 0;
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      
+      .stats-inline {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: center;
+        flex: 1;
+      }
+      
+      .action-buttons {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-shrink: 0;
       }
     </style>
   </head>
   <body>
     <div class="header">
-      <div class="header-left">
-        <h1><i class="fas fa-images"></i> 图片列表</h1>
-        <p>管理和浏览您上传的所有图片</p>
-      </div>
-      <div class="header-right">
-        <a href="/" class="btn">
-          <i class="fas fa-home"></i> 返回首页
-        </a>
-        <button class="btn btn-secondary" onclick="refreshList()">
-          <i class="fas fa-sync-alt"></i> 刷新
-        </button>
-      </div>
-    </div>
-    
-    <div class="stats-bar">
-      <div class="stat-item">
-        <div class="stat-number" id="totalCount">${totalCount.count}</div>
-        <div class="stat-label">📸 总图片数</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-number" id="imageCount">${mediaList.filter(({url}) => {
-          const ext = url.split('.').pop().toLowerCase();
-          return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tiff', 'svg'].includes(ext);
-        }).length}</div>
-        <div class="stat-label">🖼️ 当前页图片</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-number" id="videoCount">${mediaList.filter(({url}) => {
-          const ext = url.split('.').pop().toLowerCase();
-          return ['mp4', 'avi', 'mov', 'wmv', 'flv', 'mkv', 'webm'].includes(ext);
-        }).length}</div>
-        <div class="stat-label">📹 当前页视频</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-number" id="pageInfo">${page}/${totalPages}</div>
-        <div class="stat-label">📄 当前页/总页数</div>
+      <div class="header-top">
+        <div class="title-section">
+          <h1><i class="fas fa-images"></i> 图片列表</h1>
+        </div>
+        <div class="stats-inline">
+          <span class="stat-badge">📸 ${mediaList.length} 张图片</span>
+          <span class="stat-badge">💾 ${(mediaList.reduce((sum, item) => sum + (item.size || 0), 0) / 1024 / 1024).toFixed(1)} MB</span>
+        </div>
+        <div class="action-buttons">
+          <a href="/" class="btn-small">
+            <i class="fas fa-home"></i> 首页
+          </a>
+          <button class="btn-small btn-secondary" onclick="refreshList()">
+            <i class="fas fa-sync-alt"></i> 刷新
+          </button>
+        </div>
       </div>
     </div>
     
@@ -2398,7 +2833,6 @@ async function generateUrlsListPage(DATABASE, page = 1, currentDomain = '') {
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="https://raw.githubusercontent.com/oilycn/MyPic/refs/heads/main/Hexo/202108311249274.ico">
     <title>短链列表 - 多功能云服务平台</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -2732,20 +3166,63 @@ async function generateUrlsListPage(DATABASE, page = 1, currentDomain = '') {
       }
       
       @media (max-width: 768px) {
-        .header {
-          flex-direction: column;
-          text-align: center;
+        body {
+          padding: 15px;
         }
         
-        .header-right {
+        .header {
+          padding: 18px;
+        }
+        
+        .header-top {
+          flex-direction: column;
+          gap: 15px;
+          align-items: stretch;
+        }
+        
+        .title-section {
+          text-align: center;
+          order: 1;
+        }
+        
+        .title-section h1 {
+          font-size: 1.8rem;
           justify-content: center;
         }
         
-        .stats-bar {
-          gap: 20px;
+        .stats-inline {
+          order: 2;
+          justify-content: center;
+          gap: 6px;
+        }
+        
+        .stat-badge {
+          font-size: 0.75rem;
+          padding: 3px 8px;
+        }
+        
+        .action-buttons {
+          order: 3;
+          justify-content: center;
+          gap: 8px;
+        }
+        
+        .btn-small {
+          padding: 6px 12px;
+          font-size: 0.8rem;
+          min-width: 80px;
+        }
+        
+        .stat-number {
+          font-size: 1.5rem;
+        }
+        
+        .stat-label {
+          font-size: 0.8rem;
         }
         
         .url-card {
+          padding: 16px;
           flex-direction: column;
           align-items: stretch;
           gap: 15px;
@@ -2757,12 +3234,290 @@ async function generateUrlsListPage(DATABASE, page = 1, currentDomain = '') {
           gap: 10px;
         }
         
+        .short-url, .click-count {
+          justify-content: flex-start;
+        }
+        
         .url-meta {
           flex-direction: column;
-          gap: 5px;
+          gap: 8px;
         }
         
         .url-actions {
+          justify-content: center;
+          gap: 12px;
+        }
+        
+        .action-btn {
+          width: 36px;
+          height: 36px;
+        }
+      }
+      
+      @media (max-width: 480px) {
+        body {
+          padding: 10px;
+        }
+        
+        .header {
+          padding: 16px;
+          margin-bottom: 20px;
+        }
+        
+        .header-top {
+          gap: 12px;
+        }
+        
+        .title-section h1 {
+          font-size: 1.5rem;
+        }
+        
+        .stats-inline {
+          gap: 4px;
+          flex-wrap: wrap;
+        }
+        
+        .stat-badge {
+          font-size: 0.7rem;
+          padding: 2px 6px;
+          flex: 1;
+          min-width: 75px;
+          text-align: center;
+        }
+        
+        .action-buttons {
+          gap: 6px;
+        }
+        
+        .btn-small {
+          padding: 5px 10px;
+          font-size: 0.75rem;
+          flex: 1;
+          min-width: 70px;
+          justify-content: center;
+        }
+        
+        .stat-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          width: 100%;
+          padding: 8px 0;
+        }
+        
+        .stat-number {
+          font-size: 1.3rem;
+        }
+        
+        .stat-label {
+          font-size: 0.75rem;
+        }
+        
+        .url-card {
+          padding: 12px;
+          gap: 12px;
+        }
+        
+        .url-header {
+          gap: 8px;
+        }
+        
+        .short-url {
+          font-size: 0.9rem;
+        }
+        
+        .click-count {
+          font-size: 0.8rem;
+        }
+        
+        .original-url {
+          font-size: 0.85rem;
+        }
+        
+        .url-meta {
+          font-size: 0.7rem;
+          gap: 6px;
+        }
+        
+        .url-actions {
+          gap: 8px;
+        }
+        
+        .action-btn {
+          width: 32px;
+          height: 32px;
+          font-size: 0.8rem;
+        }
+        
+        .toast {
+          top: 10px;
+          right: 10px;
+          left: 10px;
+          transform: translateY(-100px);
+          padding: 10px 15px;
+          font-size: 0.9rem;
+        }
+        
+        .toast.show {
+          transform: translateY(0);
+        }
+      }
+      
+      .btn-small {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+        box-shadow: 0 3px 12px rgba(102, 126, 234, 0.3);
+      }
+      
+      .btn-small:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 16px rgba(102, 126, 234, 0.4);
+      }
+      
+      .btn-small.btn-secondary {
+        background: linear-gradient(45deg, #28a745, #20c997);
+        color: white;
+        box-shadow: 0 3px 12px rgba(40, 167, 69, 0.3);
+      }
+      
+      .btn-small.btn-secondary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 16px rgba(40, 167, 69, 0.4);
+      }
+      
+      .header-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+        width: 100%;
+      }
+      
+      .title-section {
+        flex-shrink: 0;
+      }
+      
+      .title-section h1 {
+        color: #333;
+        font-size: 2.2rem;
+        margin: 0;
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      
+      .stats-inline {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: center;
+        flex: 1;
+      }
+      
+      .action-buttons {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-shrink: 0;
+      }
+      
+      @media (max-width: 768px) {
+        .header {
+          padding: 18px;
+        }
+        
+        .header-top {
+          flex-direction: column;
+          gap: 15px;
+          align-items: stretch;
+        }
+        
+        .title-section {
+          text-align: center;
+          order: 1;
+        }
+        
+        .title-section h1 {
+          font-size: 1.8rem;
+          justify-content: center;
+        }
+        
+        .stats-inline {
+          order: 2;
+          justify-content: center;
+          gap: 6px;
+        }
+        
+        .stat-badge {
+          font-size: 0.75rem;
+          padding: 3px 8px;
+        }
+        
+        .action-buttons {
+          order: 3;
+          justify-content: center;
+          gap: 8px;
+        }
+        
+        .btn-small {
+          padding: 6px 12px;
+          font-size: 0.8rem;
+          min-width: 80px;
+        }
+      }
+      
+      @media (max-width: 480px) {
+        .header {
+          padding: 16px;
+          margin-bottom: 20px;
+        }
+        
+        .header-top {
+          gap: 12px;
+        }
+        
+        .title-section h1 {
+          font-size: 1.5rem;
+        }
+        
+        .stats-inline {
+          gap: 4px;
+          flex-wrap: wrap;
+        }
+        
+        .stat-badge {
+          font-size: 0.7rem;
+          padding: 2px 6px;
+          flex: 1;
+          min-width: 75px;
+          text-align: center;
+        }
+        
+        .action-buttons {
+          gap: 6px;
+        }
+        
+        .btn-small {
+          padding: 5px 10px;
+          font-size: 0.75rem;
+          flex: 1;
+          min-width: 70px;
           justify-content: center;
         }
       }
@@ -2771,36 +3526,24 @@ async function generateUrlsListPage(DATABASE, page = 1, currentDomain = '') {
   <body>
     <div class="container">
       <div class="header">
-        <div class="header-left">
-          <h1><i class="fas fa-link"></i> 短链列表</h1>
-          <p>管理和查看您创建的所有短链接</p>
-        </div>
-        <div class="header-right">
-          <a href="/" class="btn">
-            <i class="fas fa-home"></i> 返回首页
-          </a>
-          <button class="btn btn-secondary" onclick="refreshList()">
-            <i class="fas fa-sync-alt"></i> 刷新
-          </button>
-        </div>
-      </div>
-      
-      <div class="stats-bar">
-        <div class="stat-item">
-          <div class="stat-number" id="totalCount">${totalCount.count}</div>
-          <div class="stat-label">🔗 总短链数</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-number" id="currentCount">${urlsList.length}</div>
-          <div class="stat-label">📄 当前页数量</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-number" id="totalClicks">${urlsList.reduce((sum, url) => sum + url.clicks, 0)}</div>
-          <div class="stat-label">👆 当前页点击</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-number" id="pageInfo">${page}/${totalPages}</div>
-          <div class="stat-label">📄 当前页/总页数</div>
+        <div class="header-top">
+          <div class="title-section">
+            <h1><i class="fas fa-link"></i> 短链列表</h1>
+          </div>
+          <div class="stats-inline">
+            <span class="stat-badge">🔗 ${totalCount.count} 总链接</span>
+            <span class="stat-badge">📄 ${urlsList.length} 当前页</span>
+            <span class="stat-badge">👆 ${urlsList.reduce((sum, url) => sum + url.clicks, 0)} 点击</span>
+            <span class="stat-badge">📄 ${page}/${totalPages} 页</span>
+          </div>
+          <div class="action-buttons">
+            <a href="/" class="btn-small">
+              <i class="fas fa-home"></i> 首页
+            </a>
+            <button class="btn-small btn-secondary" onclick="refreshList()">
+              <i class="fas fa-sync-alt"></i> 刷新
+            </button>
+          </div>
         </div>
       </div>
       
