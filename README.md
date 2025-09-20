@@ -4,10 +4,10 @@ cloudflare 图床及短链接一站式 基于 workers，d1，r2
 展示包括数据统计，列表查看，储存使用量等。
 
 ### 预览如下
-![预览](https://ju.mk/1758186983904.png)
+![预览](https://ju.mk/1758347828383.png)
 
 ### 变量如下
-![预览](https://ju.mk/1758187178302.png)
+![预览](https://ju.mk/1758347943971.png)
 
 
 #### 1. `CLOUDFLARE_ACCOUNT_ID`
