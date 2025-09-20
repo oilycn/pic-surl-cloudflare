@@ -819,7 +819,7 @@ async function handleRootRequest(request, env) { // 接受 env 参数
         <div class="header">
             <h1>
             <a href="/">
-                <img src="https://ju.mk/1758200160455.png" alt="JUMK 聚合云服务平台 Logo">
+                <img src="https://wework.qpic.cn/wwpic3az/115661_28KeKO6qQZKc8JY_1758349020/" alt="JUMK 聚合云服务平台 Logo">
             </a>
             </h1>
             <p>图片托管 & 短链接生成 - 一站式解决方案 
