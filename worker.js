@@ -1543,7 +1543,6 @@ async function handleDeleteImagesRequest(request, DATABASE, R2_BUCKET, env) {
         if (r2KeysToDelete.length > 0) {
             await R2_BUCKET.delete(r2KeysToDelete);
         }
-
         return new Response(JSON.stringify({ message: '删除请求已处理' }), { status: 200 });
     } catch (error) {
         console.error('删除操作失败:', error);
@@ -2707,6 +2706,7 @@ async function generateImagesListPage(DATABASE, page = 1) {
               } else {
                 showToast(data.error || data.message || '删除失败', true);
               }
+              refreshList();
             } catch (err) {
               showToast('删除请求失败: ' + err.message, true);
             }
@@ -2733,10 +2733,12 @@ async function generateImagesListPage(DATABASE, page = 1) {
               } else {
                 showToast(data.error || data.message || '删除失败', true);
               }
+              refreshList();
             } catch (err) {
               showToast('删除请求失败: ' + err.message, true);
             }
           });
+          
         }
 
         // 复制链接
