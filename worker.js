@@ -44,7 +44,7 @@ export default {
         if (enableAuth && !(await isAuthenticated(request, env))) {
           return new Response(JSON.stringify({ error: '请先通过密码验证！' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
         }
-        return handleDeleteImagesRequest(request, DATABASE, R2_BUCKET);
+        return handleDeleteImagesRequest(request, DATABASE, R2_BUCKET, env); // 传入 env
       case '/shorten':
          // 缩短链接请求也返回 JSON 错误
         if (enableAuth && !(await isAuthenticated(request, env))) {
@@ -54,7 +54,7 @@ export default {
       case '/stats':
         return handleStatsRequest(DATABASE);
       case '/images':
-        return requireAuth(handleImagesListRequest, DATABASE);
+        return requireAuth(handleImagesListRequest, DATABASE, env); // 传入 env
       case '/urls':
         return requireAuth(handleUrlsListRequest, DATABASE);
       default:
@@ -314,6 +314,12 @@ async function handleRootRequest(request, env) { // 接受 env 参数
     }
   }
   // 如果认证功能关闭，authButtonHtml 将为空字符串，不显示任何按钮。
+
+
+  // 新增：检查企业微信上传是否启用，以决定是否显示该选项
+  const wechatEnabled = env.WECHAT_ENABLE === 'true' && env.WECHAT_CORPID && env.WECHAT_SECRET;
+  const wechatOptionHtml = wechatEnabled ? `<option value="wechat">企业微信</option>` : '';
+
 
   // 2. 将动态生成的按钮HTML注入到页面模板中
   const response = new Response(`
@@ -838,6 +844,15 @@ async function handleRootRequest(request, env) { // 接受 env 参数
                         <i class="fas fa-compress-alt"></i> 压缩开启
                     </button>
                 </div>
+
+                <!-- 新增：上传目标选择 -->
+                <div class="upload-options" style="margin-bottom: 20px; text-align: center; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <label for="uploadDestination" style="font-weight: 500; color: #475569;">上传到:</label>
+                    <select id="uploadDestination" class="input-field" style="flex: 0 1 auto; padding: 8px 12px; min-width: 150px;">
+                        <option value="r2" selected>Cloudflare R2</option>
+                        ${wechatOptionHtml}
+                    </select>
+                </div>
                 
                 <div class="upload-area" id="uploadArea">
                     <div class="upload-icon">
@@ -1038,7 +1053,7 @@ async function handleRootRequest(request, env) { // 接受 env 参数
             });
         }
 
-        // 处理文件上传
+        // 修改：处理文件上传，增加上传目标
         async function handleFiles(files) {
             if (files.length === 0) return;
 
@@ -1047,6 +1062,9 @@ async function handleRootRequest(request, env) { // 接受 env 参数
 
             const results = [];
             
+            // 获取选择的上传目标
+            const destination = document.getElementById('uploadDestination').value;
+
             for (let i = 0; i < files.length; i++) {
                 let file = files[i];
                 progressBar.style.width = ((i / files.length) * 100) + '%';
@@ -1062,6 +1080,7 @@ async function handleRootRequest(request, env) { // 接受 env 参数
                 
                 const formData = new FormData();
                 formData.append('image', file);
+                formData.append('destination', destination); // <-- 新增：将上传目标发送到后端
 
                 try {
                     const response = await fetch('/upload', {
@@ -1316,42 +1335,144 @@ async function handleRootRequest(request, env) { // 接受 env 参数
 }
 
 
-async function handleUploadRequest(request, DATABASE, domain, R2_BUCKET, maxSize, env) {
-  try {
-    // 注意：上传前会检查 R2 使用率并在 >=95% 时拒绝上传。
-    // 该函数依赖于 getR2Usage(env)，因此确保在文件中有该实现并且 handleUploadRequest 收到 env 参数。
-    if (typeof env !== 'undefined') {
-      try {
-        const usage = await getR2UsageFromMetricsAPI(env);
-        if (usage && usage.hasBucket && typeof usage.percent === 'number' && usage.percent >= 95) {
-          return new Response(JSON.stringify({ error: 'R2 使用率达到或超过95%，暂时禁止上传', usage }), { status: 503, headers: { 'Content-Type': 'application/json' } });
+/**
+ * MODIFIED: 通过VPS代理获取并缓存企业微信的 Access Token
+ * @param {object} env - Worker 环境变量
+ * @returns {Promise<string>} - 返回 Access Token
+ */
+async function getWeChatToken(env) {
+    const cache = caches.default;
+    const cacheKey = new Request('https://wechat.token/access_token');
+    const cachedResponse = await cache.match(cacheKey);
+
+    if (cachedResponse) {
+        const cachedData = await cachedResponse.json();
+        if (cachedData.expires_at > Date.now()) {
+            return cachedData.token;
         }
-      } catch (e) {
-        // 如果获取使用率失败，不阻止上传，但记录日志
-        console.error('检查 R2 使用率失败:', e);
-      }
-    }
-    const formData = await request.formData();
-    const file = formData.get('image') || formData.get('file');
-    if (!file) throw new Error('缺少文件');
-    
-    if (file.size > maxSize) {
-      return new Response(JSON.stringify({ error: `文件大小超过${maxSize / (1024 * 1024)}MB限制` }), { status: 413, headers: { 'Content-Type': 'application/json' } });
     }
 
-    const r2Key = `${Date.now()}`;
-    await R2_BUCKET.put(r2Key, file.stream(), {
-      httpMetadata: { contentType: file.type }
+    // 指向你的VPS代理服务
+    const proxyUrl = `${env.WECHAT_PROXY_URL}/gettoken`;
+    
+    const response = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            // 发送密钥进行验证
+            'X-Proxy-Secret': env.WECHAT_PROXY_SECRET
+        },
+        body: JSON.stringify({
+            corpid: env.WECHAT_CORPID,
+            corpsecret: env.WECHAT_SECRET
+        })
     });
-    const fileExtension = file.name.split('.').pop();
-    const imageURL = `https://${domain}/${r2Key}.${fileExtension}`;
-    await DATABASE.prepare('INSERT INTO media (url) VALUES (?) ON CONFLICT(url) DO NOTHING').bind(imageURL).run();
-    return new Response(JSON.stringify({ url: imageURL, data: imageURL }), { status: 200, headers: { 'Content-Type': 'application/json' } });
-  } catch (error) {
-    console.error('R2 上传错误:', error);
-    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { 'Content-Type': 'application/json' } });
-  }
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`从代理获取Token失败: ${errorText}`);
+    }
+
+    const data = await response.json();
+
+    if (data.access_token) {
+        const tokenData = {
+            token: data.access_token,
+            expires_at: Date.now() + (data.expires_in - 300) * 1000 
+        };
+        const tokenResponse = new Response(JSON.stringify(tokenData));
+        await cache.put(cacheKey, tokenResponse);
+        return data.access_token;
+    } else {
+        throw new Error(`获取企业微信Token失败: ${data.errmsg || JSON.stringify(data)}`);
+    }
 }
+
+
+
+/**
+ * MODIFIED: 处理上传请求，不再使用 source 字段
+ */
+async function handleUploadRequest(request, DATABASE, domain, R2_BUCKET, maxSize, env) {
+    try {
+        const formData = await request.formData();
+        const destination = formData.get('destination') || 'r2';
+        const file = formData.get('image') || formData.get('file');
+
+        if (!file) {
+            throw new Error('缺少文件');
+        }
+
+        if (file.size > maxSize) {
+            return new Response(JSON.stringify({ error: `文件大小超过 ${maxSize / (1024 * 1024)}MB 限制` }), { status: 413, headers: { 'Content-Type': 'application/json' } });
+        }
+
+        let imageUrl;
+
+        if (destination === 'wechat') {
+            // --- 企业微信上传逻辑 ---
+            const wechatEnabled = env.WECHAT_ENABLE === 'true' && env.WECHAT_CORPID && env.WECHAT_SECRET;
+            if (!wechatEnabled) {
+                return new Response(JSON.stringify({ error: '企业微信上传功能未配置或未启用' }), { status: 501, headers: { 'Content-Type': 'application/json' } });
+            }
+            const token = await getWeChatToken(env);
+            // MODIFICATION: 指向你的VPS代理上传接口
+            const uploadUrl = `${env.WECHAT_PROXY_URL}/uploadimg?access_token=${token}`;
+            
+            const uploadFormData = new FormData();
+            uploadFormData.append('media', file, file.name);
+            // MODIFICATION: 在请求头中加入密钥
+            const uploadResponse = await fetch(uploadUrl, {
+                method: 'POST',
+                headers: {
+                    'X-Proxy-Secret': env.WECHAT_PROXY_SECRET
+                },
+                body: uploadFormData
+            });
+            if (!uploadResponse.ok) {
+                const errorText = await uploadResponse.text();
+                throw new Error(`企业微信代理上传失败: ${errorText}`);
+            }
+            const result = await uploadResponse.json();
+            if (result.url) {
+                imageUrl = result.url;
+            } else {
+                throw new Error(`企业微信上传失败: ${result.errmsg || JSON.stringify(result)}`);
+            }
+
+        } else {
+            // R2 上传逻辑
+            if (typeof getR2UsageFromMetricsAPI === 'function') {
+                try {
+                    const usage = await getR2UsageFromMetricsAPI(env);
+                    if (usage && usage.hasBucket && typeof usage.percent === 'number' && usage.percent >= 95) {
+                        return new Response(JSON.stringify({ error: 'R2 使用率达到或超过95%，暂时禁止上传' }), { status: 503, headers: { 'Content-Type': 'application/json' } });
+                    }
+                } catch (e) { console.error('检查 R2 使用率失败:', e); }
+            }
+
+            const r2Key = `${Date.now()}`;
+            await R2_BUCKET.put(r2Key, file.stream(), { httpMetadata: { contentType: file.type } });
+            const fileExtension = file.name.split('.').pop() || 'png';
+            imageUrl = `https://${domain}/${r2Key}.${fileExtension}`;
+        }
+
+        // 统一将获取到的 URL 存入数据库
+        if (imageUrl) {
+            await DATABASE.prepare('INSERT INTO media (url, uploaded_at) VALUES (?, ?)')
+                          .bind(imageUrl, new Date().toISOString())
+                          .run();
+            return new Response(JSON.stringify({ url: imageUrl, data: imageUrl }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        } else {
+            throw new Error('未能成功获取图片URL');
+        }
+
+    } catch (error) {
+        console.error('上传处理错误:', error);
+        return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    }
+}
+
 
 async function handleImageRequest(request, DATABASE, R2_BUCKET) {
   const requestedUrl = request.url;
@@ -1359,6 +1480,8 @@ async function handleImageRequest(request, DATABASE, R2_BUCKET) {
   const cacheKey = new Request(requestedUrl);
   const cachedResponse = await cache.match(cacheKey);
   if (cachedResponse) return cachedResponse;
+  
+  // 这个函数只处理R2的图片获取，企业微信图片由浏览器直接向企业微信服务器请求
   const result = await DATABASE.prepare('SELECT url FROM media WHERE url = ?').bind(requestedUrl).first();
   if (!result) {
     const notFoundResponse = new Response('资源不存在', { status: 404 });
@@ -1387,36 +1510,45 @@ async function handleImageRequest(request, DATABASE, R2_BUCKET) {
 }
 
 
-async function handleDeleteImagesRequest(request, DATABASE, R2_BUCKET) {
-  if (request.method !== 'POST') {
-    return new Response('Method Not Allowed', { status: 405 });
-  }
-  try {
-    const keysToDelete = await request.json();
-    if (!Array.isArray(keysToDelete) || keysToDelete.length === 0) {
-      return new Response(JSON.stringify({ message: '没有要删除的项' }), { status: 400 });
+/**
+ * MODIFIED: 删除图片时，根据域名判断是否要从R2删除
+ */
+async function handleDeleteImagesRequest(request, DATABASE, R2_BUCKET, env) {
+    if (request.method !== 'POST') {
+        return new Response('Method Not Allowed', { status: 405 });
     }
-    const placeholders = keysToDelete.map(() => '?').join(',');
-    const result = await DATABASE.prepare(`DELETE FROM media WHERE url IN (${placeholders})`).bind(...keysToDelete).run();
-    if (result.changes === 0) {
-      return new Response(JSON.stringify({ message: '未找到要删除的项' }), { status: 404 });
+    try {
+        const urlsToDelete = await request.json();
+        if (!Array.isArray(urlsToDelete) || urlsToDelete.length === 0) {
+            return new Response(JSON.stringify({ message: '没有要删除的项' }), { status: 400 });
+        }
+        
+        const placeholders = urlsToDelete.map(() => '?').join(',');
+        await DATABASE.prepare(`DELETE FROM media WHERE url IN (${placeholders})`).bind(...urlsToDelete).run();
+
+        const cache = caches.default;
+        const r2KeysToDelete = [];
+
+        for (const url of urlsToDelete) {
+            await cache.delete(new Request(url));
+            // 检查URL是否属于R2（即包含您自己的域名）
+            if (url.includes(env.DOMAIN)) {
+                try {
+                    const r2Key = new URL(url).pathname.split('.')[0].substring(1);
+                    if (r2Key) r2KeysToDelete.push(r2Key);
+                } catch(e) { console.error("解析R2 key失败:", url, e); }
+            }
+        }
+        
+        if (r2KeysToDelete.length > 0) {
+            await R2_BUCKET.delete(r2KeysToDelete);
+        }
+
+        return new Response(JSON.stringify({ message: '删除请求已处理' }), { status: 200 });
+    } catch (error) {
+        console.error('删除操作失败:', error);
+        return new Response(JSON.stringify({ error: '删除失败', details: error.message }), { status: 500 });
     }
-    const cache = caches.default;
-    for (const url of keysToDelete) {
-      const cacheKey = new Request(url);
-      const cachedResponse = await cache.match(cacheKey);
-      if (cachedResponse) {
-        await cache.delete(cacheKey);
-      }
-      const urlParts = url.split('/');
-      const fileName = urlParts[urlParts.length - 1];
-      const r2Key = fileName.split('.')[0];
-      await R2_BUCKET.delete(r2Key);
-    }
-    return new Response(JSON.stringify({ message: '删除成功' }), { status: 200 });
-  } catch (error) {
-    return new Response(JSON.stringify({ error: '删除失败', details: error.message }), { status: 500 });
-  }
 }
 
 // 短链接生成函数
@@ -1615,38 +1747,80 @@ async function generateImagesListPage(DATABASE, page = 1) {
   // 获取分页数据
   let mediaList = [];
   try {
-    const mediaData = await DATABASE.prepare('SELECT url FROM media ORDER BY url LIMIT ? OFFSET ?').bind(itemsPerPage, offset).all();
-    // some DB adapters return { results: [...] } while others return the array directly
+    // 1. 修改 SQL 查询：同时获取 url 和 uploaded_at，并直接在数据库中排序
+    //    使用 COALESCE(uploaded_at, 0) 确保没有 uploaded_at 的记录也能被排序
+    const query = `
+      SELECT url, uploaded_at 
+      FROM media 
+      ORDER BY uploaded_at DESC 
+      LIMIT ? OFFSET ?
+    `;
+    const mediaData = await DATABASE.prepare(query).bind(itemsPerPage, offset).all();
+    // 2. 统一处理数据库返回结果（这部分逻辑来自第二种方式，很好，予以保留）
+    let rawMediaList = [];
     if (mediaData) {
       if (Array.isArray(mediaData.results)) {
-        mediaList = mediaData.results;
+        rawMediaList = mediaData.results;
       } else if (Array.isArray(mediaData)) {
-        mediaList = mediaData;
+        rawMediaList = mediaData;
       }
     }
-    // normalize to { url, timestamp }
-    mediaList = mediaList.map(item => {
-      const url = item && item.url ? item.url : (typeof item === 'string' ? item : '');
+    // 3. 统一数据结构为 { url, timestamp }，并整合两种时间来源
+    mediaList = rawMediaList.map(item => {
+      // 确保我们总能拿到 url 和 uploaded_at (即使它是 undefined)
+      const { url, uploaded_at } = item;
       let timestamp = null;
-      try {
-        const name = url.split('/').pop().split('.')[0];
-        const t = parseInt(name);
-        if (!isNaN(t)) timestamp = t;
-      } catch (e) {
-        timestamp = null;
+      // 优先策略：尝试使用 uploaded_at
+      if (uploaded_at) {
+        const date = new Date(uploaded_at);
+        // 检查转换后的日期是否有效
+        if (!isNaN(date.getTime())) {
+          timestamp = date.getTime();
+        }
+      }
+      // 回退策略：如果 uploaded_at 无效或不存在，则尝试从文件名解析
+      if (timestamp === null) {
+        try {
+          const name = url.split('/').pop().split('.')[0];
+          const t = parseInt(name, 10); // 使用 radix 10 保证是十进制解析
+          if (!isNaN(t)) {
+            timestamp = t;
+          }
+        } catch (e) {
+          // 解析失败，timestamp 保持 null
+          timestamp = null;
+        }
       }
       return { url, timestamp };
     });
-    // 按时间降序排列（新的在前），没有时间信息的放后面
-    mediaList.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
   } catch (e) {
+    console.error("Failed to fetch or process media list:", e);
     mediaList = [];
   }
+  // --- HTML 生成部分保持不变 ---
+  // 因为上面的代码已经将所有数据都统一处理成了 { url, timestamp } 的格式
   const mediaHtml = mediaList.map(({ url, timestamp }) => {
     const fileExtension = url.split('.').pop().toLowerCase();
-  // timestamp parsed from filename when possible
-  const timeText = timestamp ? new Date(timestamp).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '无时间信息';
-    const mediaType = fileExtension.toUpperCase();
+    
+    // 这段逻辑现在可以完美处理来自任何一种来源的时间戳
+    const timeText = timestamp 
+      ? new Date(timestamp).toLocaleString('zh-CN', { 
+          timeZone: 'Asia/Shanghai', 
+          year: 'numeric', 
+          month: '2-digit', 
+          day: '2-digit', 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        }) 
+      : '无时间信息';
+    let sourceTag, sourceClass;
+    if (url.includes('wework.qpic.cn')) {
+        sourceTag = '企业微信';
+        sourceClass = 'source-wechat';
+    } else {
+        sourceTag = 'Cloudflare R2';
+        sourceClass = 'source-r2';
+    }
     const supportedImageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tiff', 'svg'];
     const supportedVideoExtensions = ['mp4', 'avi', 'mov', 'wmv', 'flv', 'mkv', 'webm'];
     const isImage = supportedImageExtensions.includes(fileExtension);
@@ -1656,43 +1830,22 @@ async function generateImagesListPage(DATABASE, page = 1) {
     <div class="image-card" data-url="${url}">
       <div class="image-container">
         ${isVideo ? `
-          <video class="media-preview" preload="metadata" controls>
-            <source src="${url}" type="video/${fileExtension}">
-            您的浏览器不支持视频标签。
-          </video>
-          <div class="media-type-badge video">📹 ${mediaType}</div>
-        ` : isImage ? `
-          <img class="media-preview" src="${url}" alt="Image" loading="lazy">
-          <div class="media-type-badge image">🖼️ ${mediaType}</div>
+          <video class="media-preview" preload="metadata" controls><source src="${url}" type="video/${fileExtension}"></video>
         ` : `
-          <div class="unsupported-file">
-            <i class="fas fa-file fa-3x"></i>
-            <div class="media-type-badge file">📁 ${mediaType}</div>
-          </div>
+          <img class="media-preview" src="${url}" alt="Image" loading="lazy">
         `}
+        <div class="source-badge ${sourceClass}">${sourceTag}</div>
       </div>
       <div class="image-info">
-        <div class="upload-time">
-          <i class="fas fa-clock"></i>
-          ${timeText}
-        </div>
+        <div class="upload-time"><i class="fas fa-clock"></i> ${timeText}</div>
         <div class="image-actions">
-          <button class="action-btn copy-btn" onclick="copyImageUrl('${url}')" title="复制链接">
-            <i class="fas fa-copy"></i>
-          </button>
-          <button class="action-btn preview-btn" onclick="previewImage('${url}')" title="预览">
-            <i class="fas fa-eye"></i>
-          </button>
-          <button class="action-btn download-btn" onclick="downloadImage('${url}')" title="下载">
-            <i class="fas fa-download"></i>
-          </button>
-          <button class="action-btn delete-single-btn" onclick="deleteSingleImage('${url}', this)" title="删除">
-            <i class="fas fa-trash"></i>
-          </button>
+          <button class="action-btn copy-btn" onclick="copyImageUrl('${url}')" title="复制链接"><i class="fas fa-copy"></i></button>
+          <button class="action-btn preview-btn" onclick="previewImage('${url}')" title="预览"><i class="fas fa-eye"></i></button>
+          <button class="action-btn download-btn" onclick="downloadImage('${url}')" title="下载"><i class="fas fa-download"></i></button>
+          <button class="action-btn delete-single-btn" onclick="deleteSingleImage('${url}', this)" title="删除"><i class="fas fa-trash"></i></button>
         </div>
       </div>
-    </div>
-    `;
+    </div>`;
   }).join('');
   
   const html = `
@@ -2400,6 +2553,32 @@ async function generateImagesListPage(DATABASE, page = 1) {
         align-items: center;
         flex-shrink: 0;
       }
+
+      :root { --brand-color: #667eea; --wechat-color: rgba(34, 197, 94, 0.9); --r2-color: rgba(249, 115, 22, 0.9); }
+      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f6f8fb; color: #0f172a; padding: 20px; }
+      .header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; }
+      .btn { background: var(--brand-color); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s; }
+      .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+      .btn-danger { background: #dc3545; }
+      .images-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; }
+      .image-card { background: #fff; border-radius: 12px; box-shadow: 0 5px 20px rgba(15,23,42,0.05); overflow: hidden; transition: all 0.2s; border: 3px solid transparent; cursor: pointer; }
+      .image-card:hover { transform: translateY(-4px); box-shadow: 0 8px 25px rgba(15,23,42,0.08); }
+      .image-card.selected { border-color: var(--brand-color); }
+      .image-container { position: relative; width: 100%; padding-top: 75%; background: #f1f5f9; }
+      .media-preview { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+      .source-badge { position: absolute; top: 8px; left: 8px; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; color: white; backdrop-filter: blur(4px); }
+      .source-r2 { background: var(--r2-color); }
+      .source-wechat { background: var(--wechat-color); }
+      .image-info { padding: 12px; }
+      .upload-time { font-size: 0.8rem; color: #64748b; margin-bottom: 12px; display: flex; align-items: center; gap: 5px; }
+      .image-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+      .action-btn { background: #f8fafc; border: 1px solid #e2e8f0; color: #475569; padding: 8px; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+      .action-btn:hover { background: #e2e8f0; }
+      .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.7); backdrop-filter: blur(5px); }
+      .modal-content { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); max-width: 90vw; max-height: 90vh; }
+      .close { position: absolute; top: 20px; right: 30px; color: #fff; font-size: 40px; cursor: pointer; }
+      .pagination { display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap; }
+      .toast { position: fixed; top: 20px; right: 20px; padding: 12px 20px; border-radius: 8px; z-index: 1001; color: white; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
     </style>
   </head>
   <body>
@@ -3684,8 +3863,6 @@ async function generateUrlsListPage(DATABASE, page = 1, currentDomain = '') {
   });
 }
 
-
-// Modify handleR2UsageRequest to use getR2UsageFromMetricsAPI
 async function handleR2UsageRequest(env) {
   try {
       const usage = await getR2UsageFromMetricsAPI(env);
@@ -3696,11 +3873,6 @@ async function handleR2UsageRequest(env) {
   }
 }
 
-
-// ---------------------------------------------------------------------------------------------------------------------
-// BEGIN MODIFICATIONS FOR R2 METRICS API USAGE
-// ---------------------------------------------------------------------------------------------------------------------
-
 async function getR2UsageFromMetricsAPI(env) {
   const DEFAULT_LIMIT_BYTES = (() => {
       const v = Number(env.R2_FREE_LIMIT_BYTES || env.R2_FREE_LIMIT || 0);
@@ -3708,7 +3880,7 @@ async function getR2UsageFromMetricsAPI(env) {
       return 10 * 1024 * 1024 * 1024; // 默认 10GB
   })();
   if (!env || !env.CLOUDFLARE_ACCOUNT_ID || !env.CLOUDFLARE_EMAIL || !env.CLOUDFLARE_API_KEY) {
-      console.warn('R2 Metrics API: Missing CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_EMAIL, or CLOUDFLARE_API_KEY environment variables. Falling back to listing objects if R2_BUCKET is bound.');
+      console.warn('R2 Metrics API: Missing CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_EMAIL, or CLOUDFLARE_API_KEY environment variables.');
       return { usedBytes: 0, limitBytes: DEFAULT_LIMIT_BYTES, percent: 0, hasBucket: false };
   }
   try {
@@ -3726,12 +3898,9 @@ async function getR2UsageFromMetricsAPI(env) {
       });
       if (!response.ok) {
           const errorText = await response.text();
-          console.error(`Cloudflare R2 Metrics API error: ${response.status} ${response.statusText} - ${errorText}`);
-          // 如果没有 R2_BUCKET 绑定或回退也失败，则抛出错误
           throw new Error(`Failed to fetch R2 metrics: ${response.statusText} - Details: ${errorText}`);
       }
       const metricsData = await response.json();
-      console.log(metricsData); // 打印完整的 API 响应
       let used = 0;
       let hasBucketData = false;
       if (metricsData.result && metricsData.result.standard && metricsData.result.standard.published) {
