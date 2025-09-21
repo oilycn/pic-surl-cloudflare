@@ -3881,20 +3881,18 @@ async function getR2UsageFromMetricsAPI(env) {
       if (v && !Number.isNaN(v) && v > 0) return v;
       return 10 * 1024 * 1024 * 1024; // 默认 10GB
   })();
-  if (!env || !env.CLOUDFLARE_ACCOUNT_ID || !env.CLOUDFLARE_EMAIL || !env.CLOUDFLARE_API_KEY) {
-      console.warn('R2 Metrics API: Missing CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_EMAIL, or CLOUDFLARE_API_KEY environment variables.');
+  if (!env || !env.CLOUDFLARE_ACCOUNT_ID || !env.CLOUDFLARE_API_KEY) {
+      console.warn('R2 Metrics API: Missing CLOUDFLARE_ACCOUNT_ID, or CLOUDFLARE_API_KEY environment variables.');
       return { usedBytes: 0, limitBytes: DEFAULT_LIMIT_BYTES, percent: 0, hasBucket: false };
   }
   try {
       const accountId = env.CLOUDFLARE_ACCOUNT_ID;
-      const authEmail = env.CLOUDFLARE_EMAIL;
       const authKey = env.CLOUDFLARE_API_KEY;
       const apiUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/r2/metrics`;
       const response = await fetch(apiUrl, {
           method: 'GET',
           headers: {
-              'X-Auth-Email': authEmail,
-              'X-Auth-Key': authKey,
+              'Authorization': 'Bearer ' + authKey,
               'Content-Type': 'application/json',
           },
       });
