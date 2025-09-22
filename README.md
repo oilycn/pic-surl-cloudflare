@@ -7,7 +7,7 @@ cloudflare 图床及短链接一站式 基于 workers，d1，r2
 ![预览](https://ju.mk/1758347828383.png)
 
 ### 变量如下
-![预览](https://ju.mk/1758511347828.png)
+![预览](https://ju.mk/1758511681800.png)
 
 
 #### 1. `CLOUDFLARE_ACCOUNT_ID`
