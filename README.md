@@ -36,7 +36,7 @@ cloudflare 图床及短链接一站式 基于 workers，d1，r2
 
 * 创建图床链接表
 ``` sql
-CREATE TABLE media ( url TEXT PRIMARY KEY )
+CREATE TABLE media ( url TEXT PRIMARY KEY , uploaded_at TEXT)
 ```
 
 * 创建短链接表
