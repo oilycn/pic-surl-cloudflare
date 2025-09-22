@@ -7,7 +7,7 @@ cloudflare 图床及短链接一站式 基于 workers，d1，r2
 ![预览](https://ju.mk/1758347828383.png)
 
 ### 变量如下
-![预览](https://ju.mk/1758347943971.png)
+![预览](https://ju.mk/1758511347828.png)
 
 
 #### 1. `CLOUDFLARE_ACCOUNT_ID`
@@ -15,21 +15,18 @@ cloudflare 图床及短链接一站式 基于 workers，d1，r2
 *   **解释**：这是您的 **Cloudflare 账户的唯一标识符**。许多 Cloudflare API 调用都需要这个 ID 来指定操作是针对哪个账户执行的。例如，在获取 R2 存储数据、与 Worker KV 存储交互等场景中，都会用到它。
 #### 2. `CLOUDFLARE_API_KEY`
 *   **类型**：纯文本
-*   **解释**：这是您的 **Cloudflare 全局 API Key**。它拥有您整个 Cloudflare 账户的所有权限（包括但不限于 DNS、SSL、防火墙等），功能强大。
-    *   **安全性警告**：由于其极高的权限，**将全局 API Key 直接作为环境变量存储并用于 Worker 业务逻辑是高度不安全的做法**。如果这个密钥泄露，攻击者可以完全控制您的 Cloudflare 账户。
-    *   **推荐替代方案**：通常，更安全的做法是创建一个**具有最小所需权限的 API 令牌（API Token）**，而不是使用全局 API Key。例如，如果只需要读取 R2 存储使用量，就创建一个只拥有 `Account -> R2 Storage -> Analytics:Read` 权限的 API 令牌，并将其作为 `CLOUDFLARE_API_TOKEN` 或类似的变量名存储。
-#### 3. `CLOUDFLARE_EMAIL`
-*   **类型**：纯文本
-*   **解释**：这是您用来注册 **Cloudflare 账户的邮箱地址**。在某些传统的 Cloudflare API 认证方式中（尤其是在使用全局 API Key 时），除了 API Key，还需要提供账户邮箱进行身份验证。
-#### 4. `DOMAIN`
+*   **解释**：这是您的**具有最小所需权限的 API 令牌（API Token）**，例如，如果只需要读取 R2 存储使用量，就创建拥有 `Account -> R2 Storage -> Analytics:Read` 权限的 API 令牌，加R2 list权限
+#### 3. `DOMAIN`
 *   **类型**：纯文本
 *   **解释**：这可能指的是您的 Worker 正在服务或与之交互的**主域名**。例如，如果您的 Worker 部署在 `ju.mk` 这个域名下，那么这个变量就存储了这个值。它有助于 Worker 在代码中动态构建 URL 或进行域名相关的逻辑判断。
-#### 5. `ENABLE_AUTH`
+#### 4. `ENABLE_AUTH`
 *   **类型**：纯文本 (通常表示布尔值：`"true"` 或 `"false"`)
 *   **解释**：这是一个**布尔开关**，用于控制 Worker 中的某些认证逻辑是否启用。例如，如果其值为 `"true"`，Worker 可能会检查请求是否包含有效的用户名和密码；如果为 `"false"`，则可能跳过认证步骤。
-#### 6. `PASSWORD`
+#### 5. `PASSWORD`
 *   **类型**：纯文本
 *   **解释**：这很可能是用于 Worker 内部某个**认证机制的密码**。例如，和 `ENABLE_AUTH`，它可能用于实现一个简单的身份验证。
+
+下面为企业微信配置，由于企业微信需要设置可信IP，这里需要再固定ip的服务器创建一个代理服务，这里暂时不写。
 
 > 路径 》 存储和数据库 〉 D1 sql数据库 》 创建数据库 〉完成后在控制台输入下列代码执行
 
